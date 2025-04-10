@@ -27,7 +27,7 @@ So, let's do this!
 
 I will start by defining the function Z.prop.test:
 
-```{r}
+```{r} eval:false}
 Z.prop.test <- function(p1, n1, p2 = NULL, n2 = NULL, p0, alternative = "two.sided", conf.level = 0.95) 
   {
   check_normality <- function(p, n) # this function will check if the sample size is large enough for the normal approximation to work.
@@ -43,7 +43,7 @@ Z.prop.test <- function(p1, n1, p2 = NULL, n2 = NULL, p0, alternative = "two.sid
 
 If I am only testing one sample (i.e., p2 or n2 is NULL), I will perform a one-sample Z-test.
 
-```{r}
+```{r} eval:false
 # One-sample Z-test
   if (is.null(p2) || is.null(n2)) 
     {
@@ -87,7 +87,7 @@ The function starts by checking if the data is valid for a Z-test using a helper
 
 If I am comparing two samples (i.e., both p2 and n2 are provided), we perform a two-sample Z-test.
 
-```{r}
+```{r} eval:false
 # Two-sample Z-test
   else 
     {
@@ -133,7 +133,7 @@ The function first checks if both samples are valid for a Z-test. It then calcul
 
 Now the results:
 
-```{r}
+```{r} eval:false
 # Return the results as a list
   return(list(Z = Z, P = P, CI = CI))
 }
@@ -360,3 +360,15 @@ cat("R-squared for log-transformed model:", summary(log_model)$r.squared, "\n")
 ```
 
 The **log-transformed model is better** because it fits the data better (higher R²), handles biological scaling more effectively, and provides clearer interpretations of the brain size-longevity relationship. It's especially useful for data with wide ranges like primate species.
+
+Here are 5 coding headaches I ran into while working on this analysis:
+
+1.  Kept getting errors because some species had NA values for brain size or longevity. Had to do detective work with is.na() and decide whether to drop rows or impute values.
+
+2.  Forgot that you can't take log(0) or log(negative numbers)! Had to double-check my data and make sure all values were positive before transforming.
+
+3.  Spent way too long fighting with geom_text() to make the regression equation display nicely on the plots. Positioning the text just right was surprisingly fiddly.
+
+4.  At first my prediction intervals looked ridiculously wide until I realized I was using confidence intervals (interval="confidence") instead of prediction intervals (interval="prediction"). D'oh!
+
+5.  Kept mixing up which model was which when comparing R² values. Had to create separate clearly-named objects (model vs log_model) to stay organized.
