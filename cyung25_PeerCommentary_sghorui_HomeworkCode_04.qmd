@@ -1,0 +1,365 @@
+---
+title: "sghorui_OriginalHomeworkCode_04"
+author: "Soumalya"
+format: html
+editor: visual
+---
+
+# **What’s Your Malfunction?**
+
+Create a new *GitHub* repo and git-referenced *Rstudio* Project called “AN588_Malfunction_BUlogin”. Within that repo, create a new `.Rmd` file called “BUlogin_OriginalHomeworkCode_04”. Don’t forget to add your [Peer Group](https://fuzzyatelin.github.io/bioanth-stats/peercommentary.html) and instructor as collaborators, and to accept their invitations to you. Making sure to push both the markdown and knitted `.html` files to your repository, do the following:
+
+Here's the first question:
+
+### \[1\] Write a simple R function, `Z.prop.test()`, that can perform one- or two-sample Z-tests for proportion data, using the following guidelines:
+
+-   Your function should take the following arguments: p1 and n1 (no default) representing the estimated proportion and sample size (i.e., based on your sample data); p2 and n2 (both defaulting to NULL) that contain a second sample’s proportion and sample size data in the event of a two-sample test; p0 (no default) as the expected value for the population proportion; and alternative (default “two.sided”) and conf.level (default 0.95), to be used in the same way as in the function `t.test()`.
+
+-   When conducting a two-sample test, it should be p1 that is tested as being smaller or larger than p2 when alternative=“less” or alternative=“greater”, the same as in the use of x and y in the function `t.test()`.
+
+-   The function should perform a one-sample Z-test using p1, n1, and p0 if either p2 or n2 (or both) is NULL.
+
+-   The function should contain a check for the rules of thumb we have talked about (𝑛∗𝑝\>5n∗p\>5 and 𝑛∗(1−𝑝)\>5n∗(1−p)\>5) to ensure the validity of assuming the normal distribution in both the one- and two-sample settings. If this is violated, the function should still complete but it should also print an appropriate warning message.
+
+-   The function should return a list containing the members Z (the test statistic), P (the appropriate p value), and CI (the two-sided CI with respect to “conf.level” around p1 in the case of a one-sample test and around p2-p1 in the case of a two-sample test). For all test alternatives (“two.sided”, “greater”, “less”), calculate symmetric CIs based on quantiles of the normal distribution rather than worrying about calculating single-limit confidence bounds.
+
+So, let's do this!
+
+I will start by defining the function Z.prop.test:
+
+`{r} eval:false} Z.prop.test <- function(p1, n1, p2 = NULL, n2 = NULL, p0, alternative = "two.sided", conf.level = 0.95)    {   check_normality <- function(p, n) # this function will check if the sample size is large enough for the normal approximation to work.     {     if (n * p < 5 || n * (1 - p) < 5)        {       warning("Normal approximation may not be valid: n*p or n*(1-p) is less than 5.") # Here I am checking the rules of thumb: np > 5 and n(1-p) > 5. If these conditions are not met, it will send the above warning.     }   }`
+
+### **One Sample Z-test:**
+
+If I am only testing one sample (i.e., p2 or n2 is NULL), I will perform a one-sample Z-test.
+
+\`\`\`{r} eval:false \# One-sample Z-test if (is.null(p2) \|\| is.null(n2)) { \# Check if the data is valid check_normality(p1, n1)
+
+```         
+# Calculate the standard error
+se <- sqrt(p0 * (1 - p0) / n1)
+## Peer comment: I like how you added the standard error equation because it shows the uncertainty of data due to sampling. This is a very nice touch!
+
+# Calculate the Z statistic
+Z <- (p1 - p0) / se
+
+# Calculate the p-value based on the alternative hypothesis
+if (alternative == "two.sided") 
+  {
+  P <- 2 * pnorm(-abs(Z))  # Two-tailed test
+} 
+else if (alternative == "less") 
+  {
+  P <- pnorm(Z)  # Left-tailed test
+} 
+else if (alternative == "greater") 
+  {
+  P <- pnorm(-Z)  # Right-tailed test
+} 
+else 
+  {
+  stop("Invalid alternative hypothesis. Use 'two.sided', 'less', or 'greater'.")
+}
+
+# Calculate the confidence interval
+alpha <- 1 - conf.level
+z_alpha <- qnorm(1 - alpha / 2)
+CI <- c(p1 - z_alpha * se, p1 + z_alpha * se)
+```
+
+}
+
+```         
+
+The function starts by checking if the data is valid for a Z-test using a helper function. It calculates the standard error (se), which measures how much the sample proportion (p1) might vary from the true population proportion (p0). Next, it computes the Z statistic, which tells us how far p1 is from p0 in terms of standard errors. The p-value is then calculated to show how likely it is to see a result as extreme as p1 if the true proportion is p0. This depends on the alternative hypothesis: "two-sided" tests if p1 is different from p0 (higher or lower), "less" tests if p1 is less than p0, and "greater" tests if p1 is greater than p0. Finally, the confidence interval (CI) gives a range of values where we’re fairly confident the true proportion lies.
+
+### Two-Sample Z-Test:
+
+If I am comparing two samples (i.e., both p2 and n2 are provided), we perform a two-sample Z-test.
+
+```{r} eval:false
+# Two-sample Z-test
+  else 
+    {
+    # Check if the data is valid for both samples
+    check_normality(p1, n1)
+    check_normality(p2, n2)
+    
+    # Calculate the pooled proportion
+    ## Peer comment: I liked how you explicitly stated the pooled proportion here. Helps whether you can tell the proportions are equal. The pooled porportion can also give a reference point of understanding the expected porportion if p1=p2. 
+    pooled_p <- (p1 * n1 + p2 * n2) / (n1 + n2)
+    
+    # Calculate the standard error
+    se <- sqrt(pooled_p * (1 - pooled_p) * (1 / n1 + 1 / n2))
+    
+    # Calculate the Z statistic
+    Z <- (p1 - p2) / se
+    
+    # Calculate the p-value based on the alternative hypothesis
+    if (alternative == "two.sided") 
+      {
+      P <- 2 * pnorm(-abs(Z))  # Two-tailed test
+    } 
+    else if (alternative == "less") 
+      {
+      P <- pnorm(Z)  # Left-tailed test (p1 < p2)
+    } 
+    else if (alternative == "greater") 
+      {
+      P <- pnorm(-Z)  # Right-tailed test (p1 > p2)
+    } 
+    else 
+      {
+      stop("Invalid alternative hypothesis. Use 'two.sided', 'less', or 'greater'.")
+    }
+    
+    # Calculate the confidence interval for the difference in proportions
+    alpha <- 1 - conf.level
+    z_alpha <- qnorm(1 - alpha / 2)
+    CI <- c((p1 - p2) - z_alpha * se, (p1 - p2) + z_alpha * se)
+  }
+```
+
+The function first checks if both samples are valid for a Z-test. It then calculates the **pooled proportion**, which combines the proportions from both samples to estimate a common proportion under the null hypothesis. Next, it computes the **standard error (se)**, which measures how much the difference between p1 and p2 might vary. The **Z statistic** tells us how far p1 is from p2 in terms of standard errors. The **p-value** shows how likely it is to see a difference as extreme as p1-p2 if there’s no real difference between the groups. Finally, the **confidence interval (CI)** gives a range of values for the difference between p1 and p2.
+
+Now the results:
+
+`{r} eval:false # Return the results as a list   return(list(Z = Z, P = P, CI = CI)) }`
+
+Now, to run this entire the above code properly, we have to run it as a single chunk.
+
+```{r}
+Z.prop.test <- function(p1, n1, p2 = NULL, n2 = NULL, p0, alternative = "two.sided", conf.level = 0.95) 
+  {
+  # Helper function to check if the normal approximation is valid
+  check_normality <- function(p, n) 
+    {
+    if (n * p < 5 || n * (1 - p) < 5) 
+      {
+      warning("Normal approximation may not be valid: n*p or n*(1-p) is less than 5.")
+    }
+  }
+  # One-sample Z-test
+  if (is.null(p2) || is.null(n2)) 
+    {
+    # Check if the data is valid
+    check_normality(p1, n1)
+    
+    # Calculate the standard error
+    se <- sqrt(p0 * (1 - p0) / n1)
+    
+    # Calculate the Z statistic
+    Z <- (p1 - p0) / se
+    
+    # Calculate the p-value based on the alternative hypothesis
+    if (alternative == "two.sided") 
+      {
+      P <- 2 * pnorm(-abs(Z))  # Two-tailed test
+    } 
+    else if (alternative == "less") 
+      {
+      P <- pnorm(Z)  # Left-tailed test
+    } 
+    else if (alternative == "greater") 
+      {
+      P <- pnorm(-Z)  # Right-tailed test
+    } 
+    else 
+      {
+      stop("Invalid alternative hypothesis. Use 'two.sided', 'less', or 'greater'.")
+    }
+    
+    # Calculate the confidence interval
+    alpha <- 1 - conf.level
+    z_alpha <- qnorm(1 - alpha / 2)
+    CI <- c(p1 - z_alpha * se, p1 + z_alpha * se)
+  }
+  
+  # Two-sample Z-test
+  else 
+    {
+    # Check if the data is valid for both samples
+    check_normality(p1, n1)
+    check_normality(p2, n2)
+    
+    # Calculate the pooled proportion
+    pooled_p <- (p1 * n1 + p2 * n2) / (n1 + n2)
+    
+    # Calculate the standard error
+    se <- sqrt(pooled_p * (1 - pooled_p) * (1 / n1 + 1 / n2))
+    
+    # Calculate the Z statistic
+    Z <- (p1 - p2) / se
+    
+    # Calculate the p-value based on the alternative hypothesis
+    if (alternative == "two.sided") 
+      {
+      P <- 2 * pnorm(-abs(Z))  # Two-tailed test
+    } 
+    else if (alternative == "less") 
+      {
+      P <- pnorm(Z)  # Left-tailed test (p1 < p2)
+    } 
+    else if (alternative == "greater") 
+      {
+      P <- pnorm(-Z)  # Right-tailed test (p1 > p2)
+    } 
+    else 
+      {
+      stop("Invalid alternative hypothesis. Use 'two.sided', 'less', or 'greater'.")
+    }
+    
+    # Calculate the confidence interval for the difference in proportions
+    alpha <- 1 - conf.level
+    z_alpha <- qnorm(1 - alpha / 2)
+    CI <- c((p1 - p2) - z_alpha * se, (p1 - p2) + z_alpha * se)
+    }
+  # Return the results as a list
+  return(list(Z = Z, P = P, CI = CI))
+}
+```
+
+An example:
+
+```{r}
+# One-sample test
+result1 <- Z.prop.test(p1 = 0.6, n1 = 100, p0 = 0.5, alternative = "two.sided")
+print(result1)
+
+# Two-sample test
+result2 <- Z.prop.test(p1 = 0.6, n1 = 100, p2 = 0.5, n2 = 120, alternative = "greater")
+print(result2)
+```
+
+Here is the 2nd question:
+
+### \[2\] The dataset from Kamilar and Cooper has in it a large number of variables related to life history and body size. For this exercise, the end aim is to fit a simple linear regression model to predict longevity (`MaxLongevity_m`) measured in months from species’ brain size (`Brain_Size_Species_Mean`) measured in grams. Do the following for both `longevity~brain size` and `log(longevity)~log(brain size)`:
+
+-   Fit the regression model and, using {ggplot2}, produce a scatterplot with the fitted line superimposed upon the data. Append the the fitted model equation to your plot (HINT: use the function `geom_text()`).
+
+-   Identify and interpret the point estimate of the slope (β1), as well as the outcome of the test associated with the hypotheses H0: β1 = 0; HA: β1 ≠ 0. Also, find a 90 percent CI for the slope (β1) parameter.
+
+-   Using your model, add lines for the 90 percent confidence and prediction interval bands on the plot and add a legend to differentiate between the lines.
+
+-   Produce a point estimate and associated 90 percent PI for the longevity of a species whose brain weight is 800 gm. Do you trust the model to predict observations accurately for this value of the explanatory variable? Why or why not?
+
+-   Looking at your two models, which do you think is better? Why?
+
+### Loading the libraries and the data from Kamilar and Cooper
+
+```{r}
+# Loading necessary libraries
+library(ggplot2)  # For plotting
+library(dplyr)    # For data manipulation
+
+# Loading the dataset
+library(curl)
+data <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/refs/heads/master/AN588_Spring25/KamilarAndCooperData.csv")
+KC <- read.csv(data, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+head(KC)
+```
+
+Now, we will fit the linear regression model into this dataset to predict longevity from brain size:
+
+```{r}
+model <- lm(MaxLongevity_m ~ Brain_Size_Species_Mean, data = KC) # Fit the linear regression model
+summary(model) # Summarize the model
+```
+
+Now we will create a scatter plot from fitted line:
+
+```{r}
+# Create a scatterplot with the fitted regression line
+ggplot(KC, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m)) + geom_point() +  # Add the data points 
+geom_smooth(method = "lm", se = FALSE, color = "green") +  # Add the regression line
+geom_text(
+aes(
+x = max(Brain_Size_Species_Mean, na.rm = TRUE) * 0.8, y = max(MaxLongevity_m, na.rm = TRUE) * 0.9, label = paste("y =", round(coef(model)[1], 2), "+", round(coef(model)[2], 2), "x"))) + #Add the equation
+labs(title = "Longevity vs. Brain Size", x = "Brain Size (g)", y = "Longevity (months)") +
+theme_minimal()
+```
+
+From the model summary, we can interpret the slope and test the hypothesis that the slope is zero.
+
+```{r}
+slope <- coef(model)[2]
+p_value <- summary(model)$coefficients[2, 4] # Extracting the slope (β1) and its p-value
+
+cat("Slope (β1):", slope, "\n")
+cat("p-value for H0: β1 = 0:", p_value, "\n") # Printing the slope and p-value
+
+conf_int <- confint(model, level = 0.90)[2, ]
+cat("90% CI for β1:", conf_int, "\n") # Calculating the 90% confidence interval for the slope
+
+```
+
+Now I will add confidence and prediction intervals to the plot and include a legend.
+
+```{r}
+ggplot(KC, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m)) + geom_point() + # Create a plot with both confidence and prediction intervals
+geom_smooth(aes(color = "Confidence Interval", fill = "Confidence Interval"),method = "lm", se = TRUE, level = 0.95) + # Confidence interval (blue)
+geom_smooth(aes(color = "Prediction Interval", fill = "Prediction Interval"), method = "lm", se = TRUE, level = 0.90) + # Prediction interval (red)
+geom_text(
+aes(x = max(Brain_Size_Species_Mean, na.rm = TRUE) * 0.8, 
+    y = max(MaxLongevity_m, na.rm = TRUE) * 0.9),
+    label = paste("y =", round(coef(model)[1], 2), "+", round(coef(model)[2], 2), "x"), color = "black", size = 4
+  ) + # Regression equation
+scale_color_manual(name = "Interval Type", values = c("Confidence Interval" = "blue", "Prediction Interval" = "red")) + 
+scale_fill_manual(name = "Interval Type",values = c("Confidence Interval" = "lightblue", "Prediction Interval" = "pink")) +
+labs(title = "Longevity vs. Brain Size with Intervals",x = "Brain Size (g)", y = "Longevity (months)"
+) + # Customizeing colors, legend and adding labels
+theme_minimal() +
+theme(legend.position = "bottom")  # Moving legend to bottom
+## Peer Comment: This is a very nice plot! I liked how you were able to also manuever the figure legend position to your perference as well. Nice touch!
+```
+
+And now we will use the model to predict the longevity for a species with a brain size of 800g and calculate the 90% prediction interval.
+
+```{r}
+## Peer Comment: For this part of the homework I like how showed each part of this step by step very clearly. Nicely done!
+new_data <- data.frame(Brain_Size_Species_Mean = 800) # Creating a new data frame with the brain size of 800g
+
+prediction <- predict(model, newdata = new_data, interval = "prediction", level = 0.90) # Predicting longevity and calculating the 90% prediction interval
+
+cat("Predicted Longevity for 800g Brain Size:", prediction[1], "\n")
+cat("90% Prediction Interval:", prediction[2], "to", prediction[3], "\n") # Printing the prediction and interval
+```
+
+We’ll repeat the process using the log-transformed variables.
+
+```{r}
+log_model <- lm(log(MaxLongevity_m) ~ log(Brain_Size_Species_Mean), data = KC) # Fitting the log-transformed model
+
+summary(log_model) # Summarizing the log-transformed model
+
+# Creating a scatterplot with the fitted line for the log-transformed model
+ggplot(KC, aes(x = log(Brain_Size_Species_Mean), y = log(MaxLongevity_m))) +
+geom_point() +
+geom_smooth(method = "lm", se = FALSE, color = "blue") +
+geom_text(aes(x = max(log(Brain_Size_Species_Mean)) * 0.8, y = max(log(MaxLongevity_m)) * 0.9), label = paste("y =", round(coef(log_model)[1], 2), "+", round(coef(log_model)[2], 2), "x")) +
+labs(title = "Log(Longevity) vs. Log(Brain Size)", x = "Log(Brain Size)", y = "Log(Longevity)") +
+theme_minimal()
+
+## Peer Comment: I liked how you added the theme minimal for better data presentation. 
+```
+
+Finally, we’ll compare the two models to determine which one is better.
+
+```{r}
+cat("R-squared for original model:", summary(model)$r.squared, "\n")
+cat("R-squared for log-transformed model:", summary(log_model)$r.squared, "\n")
+```
+
+The **log-transformed model is better** because it fits the data better (higher R²), handles biological scaling more effectively, and provides clearer interpretations of the brain size-longevity relationship. It's especially useful for data with wide ranges like primate species.
+
+Here are 5 coding headaches I ran into while working on this analysis:
+
+1.  Kept getting errors because some species had NA values for brain size or longevity. Had to do detective work with is.na() and decide whether to drop rows or impute values.
+
+2.  Forgot that you can't take log(0) or log(negative numbers)! Had to double-check my data and make sure all values were positive before transforming.
+
+3.  Spent way too long fighting with geom_text() to make the regression equation display nicely on the plots. Positioning the text just right was surprisingly fiddly.
+
+4.  At first my prediction intervals looked ridiculously wide until I realized I was using confidence intervals (interval="confidence") instead of prediction intervals (interval="prediction"). D'oh!
+
+5.  Kept mixing up which model was which when comparing R² values. Had to create separate clearly-named objects (model vs log_model) to stay organized.
